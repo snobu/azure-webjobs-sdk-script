@@ -453,6 +453,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebJobs.Script.Scaling", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebJobs.Script.Scaling.Tests", "test\WebJobs.Script.Scaling.Tests\WebJobs.Script.Scaling.Tests.csproj", "{8088DC08-4BB1-442D-8CD4-571FC9330D54}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomFilter-CSharp", "CustomFilter-CSharp", "{25CC9E79-B230-434E-B97E-D2B718C733EC}"
+	ProjectSection(SolutionItems) = preProject
+		sample\CustomFilter-CSharp\function.json = sample\CustomFilter-CSharp\function.json
+		sample\CustomFilter-CSharp\run.csx = sample\CustomFilter-CSharp\run.csx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		test\WebJobs.Script.Tests.Shared\WebJobs.Script.Tests.Shared.projitems*{35a2025d-f68a-4b57-83a2-ed4eb9c3894d}*SharedItemsImports = 4
@@ -579,5 +585,6 @@ Global
 		{62489417-341D-42AD-9E84-E97EB8236979} = {FF9C0818-30D3-437A-A62D-7A61CA44F459}
 		{292A9038-5807-4095-B37F-9A77170D7402} = {16351B76-87CA-4A8C-80A1-3DD83A0C4AA6}
 		{8088DC08-4BB1-442D-8CD4-571FC9330D54} = {FD93A1ED-5AC4-4F9B-9087-E1C24320F36E}
+		{25CC9E79-B230-434E-B97E-D2B718C733EC} = {FF9C0818-30D3-437A-A62D-7A61CA44F459}
 	EndGlobalSection
 EndGlobal

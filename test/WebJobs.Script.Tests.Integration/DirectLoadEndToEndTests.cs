@@ -9,13 +9,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Host;
-using Microsoft.Azure.WebJobs.Script.Tests.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Script.Tests
@@ -28,7 +25,7 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
         {
         }
 
-        [Fact(Skip ="Fails in AppVeyor")]
+        [Fact]
         public async Task Invoke()
         {
             // Verify the type is ls in the typelocator.
@@ -37,13 +34,13 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
             var userType = tl.GetTypes().Where(type => type.FullName == "TestFunction.DirectLoadFunction").First();
             AssertUserType(userType);
 
-            await InvokeDotNetFunction("DotNetDirectFunction", "Hello from .NET DirectInvoker");
+            await InvokeDotNetFunction("DotNetDirectFunction", "Hello from .NET DirectInvoker!");
         }
 
         public async Task InvokeDotNetFunction(string functionName, string expectedResult)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "http://functions/myfunc");
-            Dictionary<string, object> arguments = new Dictionary<string, object>()
+            var arguments = new Dictionary<string, object>()
             {
                 { "req", request }
             };
@@ -52,9 +49,12 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
 
             await Fixture.Host.CallAsync(functionName, arguments);
 
-            HttpResponseMessage response = (HttpResponseMessage)request.Properties[ScriptConstants.AzureFunctionsHttpResponseKey];
+            var response = (HttpResponseMessage)request.Properties[ScriptConstants.AzureFunctionsHttpResponseKey];
 
+            // verify the invocation filter was called
             Assert.Equal(expectedResult, await response.Content.ReadAsStringAsync());
+            var filterProperty = response.RequestMessage.Properties["TestFilter"];
+            Assert.Equal("TestFilter Invoked!", filterProperty);
         }
 
         // Do validation on the type we compiled.

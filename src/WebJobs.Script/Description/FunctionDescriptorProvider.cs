@@ -206,6 +206,13 @@ namespace Microsoft.Azure.WebJobs.Script.Description
                 CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(ctorInfo, new object[0]);
                 methodAttributes.Add(attributeBuilder);
             }
+
+            foreach (var filter in functionMetadata.Filters)
+            {
+                ConstructorInfo ctorInfo = typeof(InvokeFunctionFilterAttribute).GetConstructor(new Type[] { typeof(string), typeof(string) });
+                CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(ctorInfo, new object[] { filter.ExecutingFilter, filter.ExecutedFilter });
+                methodAttributes.Add(attributeBuilder);
+            }
         }
 
         protected abstract IFunctionInvoker CreateFunctionInvoker(string scriptFilePath, BindingMetadata triggerMetadata, FunctionMetadata functionMetadata, Collection<FunctionBinding> inputBindings, Collection<FunctionBinding> outputBindings);

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.WebJobs.Script.Description
         public FunctionMetadata()
         {
             Bindings = new Collection<BindingMetadata>();
+            Filters = new Collection<InvocationFilter>();
         }
 
         public string Name { get; set; }
@@ -76,5 +77,7 @@ namespace Microsoft.Azure.WebJobs.Script.Description
                 return Bindings.Where(p => p.Direction != BindingDirection.In);
             }
         }
+
+        public Collection<InvocationFilter> Filters { get; set; }
     }
 }

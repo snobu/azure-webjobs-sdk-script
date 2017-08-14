@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Hosting;
@@ -189,7 +190,20 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                 };
                 using (logger.BeginScope(scopeState))
                 {
-                    await Instance.CallAsync(function.Name, arguments, cancellationToken);
+                    try
+                    {
+                        await Instance.CallAsync(function.Name, arguments, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        Exception innerException = ex.Unwrap();
+                        if (innerException is FunctionResultException resultException &&
+                            resultException.Result is HttpResponseMessage errorResponse)
+                        {
+                            return errorResponse;
+                        }
+                        throw ex;
+                    }
                 }
             }
 

@@ -286,11 +286,6 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
             string body = await response.Content.ReadAsStringAsync();
             Assert.Equal("text/plain", response.Content.Headers.ContentType.MediaType);
             Assert.Equal("Hello Mathew", body);
-
-            // verify request also succeeds with master key
-            uri = $"api/httptrigger?code={MasterKey}&name=Mathew";
-            request = new HttpRequestMessage(HttpMethod.Get, uri);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
         [Fact]
@@ -315,6 +310,38 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
             request = new HttpRequestMessage(HttpMethod.Get, uri);
             response = await this._fixture.HttpClient.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            var logs = await TestHelpers.GetFunctionLogsAsync("CustomFilter-CSharp");
+            Assert.True(logs.Any(p => p.Contains("Custom invocation filter called (Executing)")));
+            Assert.True(logs.Any(p => p.Contains("Custom invocation filter called (Executed)")));
+        }
+
+        [Fact]
+        public async Task HttpTrigger_CustomFilter()
+        {
+            TestHelpers.ClearFunctionLogs("CustomFilter-CSharp");
+
+            string uri = "api/httptrigger?code=hyexydhln844f2mb7hgsup2yf8dowlb0885mbiq1&name=Mathew&age=15";
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+
+            var response = await this._fixture.HttpClient.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            string body = await response.Content.ReadAsStringAsync();
+            Assert.Equal("text/plain", response.Content.Headers.ContentType.MediaType);
+            Assert.Equal("Hello Mathew", body);
+
+            var logs = await TestHelpers.GetFunctionLogsAsync("CustomFilter-CSharp");
+            Assert.True(logs.Any(p => p.Contains("Custom invocation filter called (Executing)")));
+            Assert.True(logs.Any(p => p.Contains("Custom invocation filter called (Executed)")));
+
+            // now send an invalid age value - expect bad request
+            uri = "api/httptrigger?code=hyexydhln844f2mb7hgsup2yf8dowlb0885mbiq1&name=Mathew&age=175";
+            request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+            response = await this._fixture.HttpClient.SendAsync(request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("Invalid age specified.", response.ReasonPhrase);
         }
 
         [Fact]

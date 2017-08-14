@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
+using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
@@ -31,7 +32,8 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
 
             ParameterInfo parameter = context.Parameter;
             ManualTriggerAttribute attribute = parameter.GetCustomAttribute<ManualTriggerAttribute>(inherit: false);
-            if (attribute == null)
+            bool isInvocationFilter = typeof(FunctionInvocationContext).IsAssignableFrom(parameter.ParameterType);
+            if (attribute == null || isInvocationFilter)
             {
                 return Task.FromResult<ITriggerBinding>(null);
             }
@@ -92,7 +94,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
                 string invokeString = value?.ToString();
                 if (_isUserTypeBinding)
                 {
-                    if (value != null && value.GetType() != _parameter.ParameterType)
+                    if (value != null && !_parameter.ParameterType.IsAssignableFrom(value.GetType()))
                     {
                         if (value is string)
                         {

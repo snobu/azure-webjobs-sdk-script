@@ -18,6 +18,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ApplicationInsights.WindowsServer.Channel.Implementation;
+using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Extensions;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Config;
@@ -494,7 +495,7 @@ namespace Microsoft.Azure.WebJobs.Script
 
                 var directTypes = GetDirectTypes(functionMetadata);
 
-                LoadDirectlyReferencesExtensions(directTypes);
+                LoadDirectlyReferencedExtensions(directTypes);
 
                 LoadCustomExtensions();
 
@@ -630,20 +631,51 @@ namespace Microsoft.Azure.WebJobs.Script
 
             foreach (var metadata in functionMetadataList)
             {
-                if (!metadata.IsDirect)
+                if (!string.IsNullOrEmpty(metadata.ScriptFile) && !string.IsNullOrEmpty(metadata.EntryPoint))
                 {
-                    continue;
+                    string path = metadata.ScriptFile;
+                    var typeName = Utility.GetFullClassName(metadata.EntryPoint);
+
+                    Assembly assembly = Assembly.LoadFrom(path);
+                    var type = assembly.GetType(typeName);
+
+                    var methodName = Utility.GetFunctionShortName(metadata.EntryPoint);
+                    var targetMethod = type.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                    if (IsFunction(targetMethod))
+                    {
+                        // TODO: improve this check
+                        metadata.IsDirect = true;
+                    }
+
+                    if (metadata.IsDirect)
+                    {
+                        visitedTypes.Add(type);
+                    }
                 }
-
-                string path = metadata.ScriptFile;
-                var typeName = Utility.GetFullClassName(metadata.EntryPoint);
-
-                Assembly assembly = Assembly.LoadFrom(path);
-                var type = assembly.GetType(typeName);
-
-                visitedTypes.Add(type);
             }
             return visitedTypes;
+        }
+
+        private static bool IsFunction(MethodInfo methodInfo)
+        {
+            if (methodInfo.GetCustomAttribute<FunctionNameAttribute>() != null)
+            {
+                return true;
+            }
+
+            foreach (var parameter in methodInfo.GetParameters())
+            {
+                foreach (var attribute in parameter.GetCustomAttributes())
+                {
+                    var attributeType = attribute.GetType();
+                    if (attributeType.GetCustomAttribute<BindingAttribute>() != null)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private IMetricsLogger CreateMetricsLogger()
@@ -704,8 +736,8 @@ namespace Microsoft.Azure.WebJobs.Script
             }
         }
 
-        // Load extensions that are directly references by the user types.
-        private void LoadDirectlyReferencesExtensions(IEnumerable<Type> userTypes)
+        // Load extensions that are directly referenced by the user types.
+        private void LoadDirectlyReferencedExtensions(IEnumerable<Type> userTypes)
         {
             var possibleExtensionAssemblies = UserTypeScanner.GetPossibleExtensionAssemblies(userTypes);
 
@@ -1062,6 +1094,38 @@ namespace Microsoft.Azure.WebJobs.Script
                 else if (!string.Equals(isDirectValue, "config", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new FormatException($"Illegal value '{isDirectValue}' for 'configurationSource' property in {functionMetadata.Name}'.");
+                }
+            }
+
+            JArray filterArray = (JArray)configMetadata["filters"];
+            if (filterArray != null)
+            {
+                foreach (JToken filter in filterArray)
+                {
+                    if (filter.Type == JTokenType.Object)
+                    {
+                        // pull the executing/executed function names from
+                        // the object
+                        JObject filterObject = (JObject)filter;
+                        JToken executingFunctionName, executedFunctionName;
+                        filterObject.TryGetValue("executing", out executingFunctionName);
+                        filterObject.TryGetValue("executed", out executedFunctionName);
+                        functionMetadata.Filters.Add(new InvocationFilter
+                        {
+                            ExecutingFilter = (string)executingFunctionName,
+                            ExecutedFilter = (string)executedFunctionName
+                        });
+                    }
+                    else if (filter.Type == JTokenType.String)
+                    {
+                        // when the value is just a string, we use the same method
+                        // for both executing and executed
+                        functionMetadata.Filters.Add(new InvocationFilter
+                        {
+                            ExecutingFilter = (string)filter,
+                            ExecutedFilter = (string)filter
+                        });
+                    }
                 }
             }
 

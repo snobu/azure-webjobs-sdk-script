@@ -44,5 +44,15 @@ namespace System
 
             return ExceptionFormatter.GetFormattedException(exception);
         }
+
+        public static Exception Unwrap(this Exception exception)
+        {
+            while (exception.InnerException != null)
+            {
+                exception = exception.InnerException;
+            }
+
+            return exception;
+        }
     }
 }
