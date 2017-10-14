@@ -33,6 +33,9 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
     /// </summary>
     public class HostController : Controller
     {
+        private static string _assignedApp = null;
+        private static readonly object _assignLock = new object();
+
         private readonly WebScriptHostManager _scriptHostManager;
         private readonly WebHostSettings _webHostSettings;
         private readonly ILogger _logger;
@@ -47,7 +50,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpGet("admin/host/status")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevelOrInternal)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevelOrInternal)]
         public IActionResult GetHostStatus()
         {
             var status = new HostStatus
@@ -87,7 +90,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpPost("admin/host/log")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevelOrInternal)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevelOrInternal)]
         public IActionResult Log(IEnumerable<HostLogEntry> logEntries)
         {
             if (logEntries == null)
@@ -115,7 +118,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpPost("admin/host/debug")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public IActionResult LaunchDebugger()
         {
             if (_webHostSettings.IsSelfHost)
@@ -134,6 +137,70 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
             return StatusCode(StatusCodes.Status501NotImplemented);
         }
 
+        public IActionResult AlreadyAssigned() =>
+            StatusCode(StatusCodes.Status409Conflict, "Instance already assigned");
+
+        [HttpPost("admin/assign")]
+        public IActionResult Assign([FromBody] AssignmentContext assignmentContext)
+        {
+            if (string.IsNullOrEmpty(_assignedApp))
+            {
+                try
+                {
+                    lock (_assignLock)
+                    {
+                        if (!string.IsNullOrEmpty(_assignedApp))
+                        {
+                            return AlreadyAssigned();
+                        }
+
+                        // decrypt, //TODO
+                        //var assignmentContext = JsonConvert.DeserializeObject<AssignmentContext>(body);
+                        _assignedApp = assignmentContext.AppName;
+                    }
+
+                    // download zip
+                    var zip = assignmentContext.GetZipUrl();
+                    if (string.IsNullOrEmpty(zip))
+                    {
+                        // what to do?
+                        return BadRequest();
+                    }
+
+                    var filePath = Path.GetTempFileName();
+                    using (var webClient = new WebClient())
+                    {
+                        webClient.DownloadFile(new Uri(zip), filePath);
+                    }
+
+                    // apply app settings
+                    foreach (var pair in assignmentContext.AppSettings)
+                    {
+                        System.Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+                        ScriptSettingsManager.Instance.SetSetting(pair.Key, pair.Value);
+                    }
+
+                    ZipFile.ExtractToDirectory(filePath, _webHostSettings.ScriptPath, overwriteFiles: true);
+
+                    // Restart runtime.
+                    _scriptHostManager.RestartHost();
+                    return Accepted();
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+                finally
+                {
+                }
+            }
+            else
+            {
+                // Decrypt.
+                return AlreadyAssigned();
+            }
+        }
+
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             // For all admin api requests, we'll update the ScriptHost debug timeout
@@ -146,7 +213,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
 
         [HttpGet]
         [HttpPost]
-        [Authorize(AuthenticationSchemes = AuthLevelAuthenticationDefaults.AuthenticationScheme)]
+        //[Authorize(AuthenticationSchemes = AuthLevelAuthenticationDefaults.AuthenticationScheme)]
         [Route("runtime/webhooks/{name}/{*extra}")]
         public async Task<IActionResult> ExtensionWebHookHandler(string name, CancellationToken token)
         {

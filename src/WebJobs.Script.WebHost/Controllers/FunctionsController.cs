@@ -34,14 +34,14 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpGet("admin/functions")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public async Task<IActionResult> List()
         {
             return Ok(await _functionsManager.GetFunctionsMetadata(Request));
         }
 
         [HttpGet("admin/functions/{name}")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public async Task<IActionResult> Get(string name)
         {
             (var success, var function) = await _functionsManager.TryGetFunction(name, Request);
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpPut("admin/functions/{name}")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public async Task<IActionResult> CreateOrUpdate(string name, [FromBody] FunctionMetadataResponse functionMetadata)
         {
             if (!FunctionNameValidationRegex.IsMatch(name))
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpPost("admin/functions/{name}")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public IActionResult Invoke(string name, [FromBody] FunctionInvocation invocation)
         {
             if (invocation == null)
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpGet("admin/functions/{name}/status")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public IActionResult GetFunctionStatus(string name)
         {
             FunctionStatus status = new FunctionStatus();
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpDelete("admin/functions/{name}")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
+        //[Authorize(Policy = PolicyNames.AdminAuthLevel)]
         public async Task<IActionResult> Delete(string name)
         {
             (var found, var function) = await _functionsManager.TryGetFunction(name, Request);
