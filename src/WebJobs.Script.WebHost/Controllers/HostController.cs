@@ -201,6 +201,16 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
             }
         }
 
+        [HttpGet("admin/info")]
+        public IActionResult GetInstanceInfo()
+        {
+            return Ok(new Dictionary<string, string>
+            {
+                { "FUNCTIONS_EXTENSION_VERSION", "~2" },
+                { "WEBSITE_NODE_DEFAULT_VERSION", "8.5.0" }
+            });
+        }
+
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             // For all admin api requests, we'll update the ScriptHost debug timeout
