@@ -157,7 +157,7 @@ namespace WebJobs.Script.WebHost.Management
         {
             // TODO: clear secrets
             // TODO: clear logs
-            FileSystemHelpers.DeleteFileSafe(function.GetFunctionTestDataFilePath(_config));
+            //FileSystemHelpers.DeleteFileSafe(function.GetFunctionTestDataFilePath(_config));
         }
     }
 }
