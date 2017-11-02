@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.WebJobs.Script;
 using Microsoft.Azure.WebJobs.Script.Config;
 using Microsoft.Azure.WebJobs.Script.WebHost.Authentication;
 using Microsoft.Azure.WebJobs.Script.WebHost.Models;
@@ -206,7 +207,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         {
             return Ok(new Dictionary<string, string>
             {
-                { "FUNCTIONS_EXTENSION_VERSION", "~2" },
+                { "FUNCTIONS_EXTENSION_VERSION", ScriptHost.Version },
                 { "WEBSITE_NODE_DEFAULT_VERSION", "8.5.0" }
             });
         }
